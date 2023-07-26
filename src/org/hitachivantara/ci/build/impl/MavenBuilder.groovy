@@ -91,14 +91,18 @@ class MavenBuilder extends AbstractBuilder implements IBuilder, Serializable {
 
   @Override
   Closure getTestClosure(JobItem jobItem) {
+    String mvnCommand = getTestCommand()
+    steps.log.info "Maven test directives for ${jobItem.jobID}: $mvnCommand"
+    return getMvnDsl(mvnCommand)
+  }
+
+  String getTestCommand() {
     CommandBuilder command = getCommandBuilder('test', buildData.getString(MAVEN_TEST_OPTS))
 
     // list of goals that we want stripped from the final command
     command -= ['clean', 'validate', 'compile', 'verify', 'package', 'install', 'deploy', '-Dmaven.test.skip', '-Drelease'].join(' ')
 
-    String mvnCommand = command.build()
-    steps.log.info "Maven test directives for ${jobItem.jobID}: $mvnCommand"
-    return getMvnDsl(mvnCommand)
+    return command.build()
   }
 
   MavenModule buildMavenModule(CommandBuilder command) throws Exception {

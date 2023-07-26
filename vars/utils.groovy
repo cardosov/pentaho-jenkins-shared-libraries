@@ -3,6 +3,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
+
+import groovy.json.JsonSlurper
 import hudson.FilePath
 import hudson.model.Node
 import org.hitachivantara.ci.JobItem
@@ -36,7 +38,7 @@ import static org.hitachivantara.ci.config.LibraryProperties.WORKSPACE
  * } finally {
  *   last()
  * }
- * }</pre>
+ *}</pre>
  * @param body
  * @param handler
  * @param last
@@ -82,17 +84,17 @@ def handleError(Closure body, Closure handler = {}, Closure last = {}) {
  */
 def withGit(Map info, Closure body) {
   List gitEnvironment = [
-    "GIT_ORG=${info.organization}",
-    "GIT_REPO=${info.repository}"
+      "GIT_ORG=${info.organization}",
+      "GIT_REPO=${info.repository}"
   ]
 
   // find the proper credentials based on the scm connection
   switch (info.connection) {
     case JobItem.SCMConnectionType.HTTP:
       withCredentials([usernamePassword(
-        credentialsId: info.credentials,
-        usernameVariable: 'GIT_USERNAME',
-        passwordVariable: 'GIT_PASSWORD'
+          credentialsId: info.credentials,
+          usernameVariable: 'GIT_USERNAME',
+          passwordVariable: 'GIT_PASSWORD'
       )]) {
 
         String gitUserEncoded = URLEncoder.encode(GIT_USERNAME as String, 'UTF-8')
@@ -100,16 +102,16 @@ def withGit(Map info, Closure body) {
 
         // Wrap the encoded user/pass so it gets masked
         wrap([
-          $class          : 'MaskPasswordsBuildWrapper',
-          varPasswordPairs: [[password: gitUserEncoded], [password: gitPassEncoded]]
+            $class          : 'MaskPasswordsBuildWrapper',
+            varPasswordPairs: [[password: gitUserEncoded], [password: gitPassEncoded]]
         ]) {
           gitEnvironment += [
-            "GIT_AUTHOR_NAME=$GIT_USERNAME",
-            "GIT_COMMITTER_NAME=$GIT_USERNAME",
-            "GIT_AUTHOR_EMAIL=$GIT_USERNAME@hitachivantara.com",
-            "GIT_COMMITTER_EMAIL=$GIT_USERNAME@hitachivantara.com",
-            "GIT_USERNAME=${gitUserEncoded}",
-            "GIT_PASSWORD=${gitPassEncoded}"
+              "GIT_AUTHOR_NAME=$GIT_USERNAME",
+              "GIT_COMMITTER_NAME=$GIT_USERNAME",
+              "GIT_AUTHOR_EMAIL=$GIT_USERNAME@hitachivantara.com",
+              "GIT_COMMITTER_EMAIL=$GIT_USERNAME@hitachivantara.com",
+              "GIT_USERNAME=${gitUserEncoded}",
+              "GIT_PASSWORD=${gitPassEncoded}"
           ]
 
           withEnv(gitEnvironment) {
@@ -121,16 +123,16 @@ def withGit(Map info, Closure body) {
 
     case JobItem.SCMConnectionType.SSH:
       withCredentials([sshUserPrivateKey(
-        credentialsId: info.credentials,
-        usernameVariable: 'GIT_USERNAME',
-        keyFileVariable: 'GIT_KEY'
+          credentialsId: info.credentials,
+          usernameVariable: 'GIT_USERNAME',
+          keyFileVariable: 'GIT_KEY'
       )]) {
         gitEnvironment += [
-          "GIT_AUTHOR_NAME=$GIT_USERNAME",
-          "GIT_COMMITTER_NAME=$GIT_USERNAME",
-          "GIT_AUTHOR_EMAIL=$GIT_USERNAME@hitachivantara.com",
-          "GIT_COMMITTER_EMAIL=$GIT_USERNAME@hitachivantara.com",
-          'GIT_SSH_COMMAND=ssh -i $GIT_KEY -o StrictHostKeyChecking=no'
+            "GIT_AUTHOR_NAME=$GIT_USERNAME",
+            "GIT_COMMITTER_NAME=$GIT_USERNAME",
+            "GIT_AUTHOR_EMAIL=$GIT_USERNAME@hitachivantara.com",
+            "GIT_COMMITTER_EMAIL=$GIT_USERNAME@hitachivantara.com",
+            'GIT_SSH_COMMAND=ssh -i $GIT_KEY -o StrictHostKeyChecking=no'
         ]
         withEnv(gitEnvironment) {
           body('git@github.com:${GIT_ORG}/${GIT_REPO}.git')
@@ -228,7 +230,7 @@ void createStageError(String name, String message) {
  */
 Map setNode(Map entries) {
   BuildData buildData = BuildData.instance
-  if(!buildData.useMinions && entries.size() > 1){
+  if (!buildData.useMinions && entries.size() > 1) {
     entries.each { String key, Object val ->
       entries[key] = { node(buildData.get(SLAVE_NODE_LABEL), val) }
     }
@@ -321,4 +323,14 @@ void pushItem(JobItem item) {
       sh("git push ${gitUrl} HEAD:${item.scmBranch}")
     }
   }
+}
+
+void withStringCredentials(String credsId, Closure call) {
+  withCredentials([string(credentialsId: credsId, variable: 'CREDS_VALUE')]) {
+    call("${CREDS_VALUE}")
+  }
+}
+
+def getEnvValue(String varName) {
+  return env[varName]
 }

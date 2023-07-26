@@ -5,6 +5,7 @@
  */
 package org.hitachivantara.ci.build
 
+import org.hitachivantara.ci.build.impl.ActionsBuilder
 import org.hitachivantara.ci.build.impl.AntBuilder
 import org.hitachivantara.ci.build.impl.DSLScriptBuilder
 import org.hitachivantara.ci.build.impl.GradleBuilder
@@ -16,7 +17,8 @@ enum BuildFramework {
   ANT(AntBuilder, 'build.xml'),
   GRADLE(GradleBuilder, 'build.gradle'),
   JENKINS_JOB(JenkinsJobBuilder, 'Jenkinsfile'),
-  DSL_SCRIPT(DSLScriptBuilder, '')
+  DSL_SCRIPT(DSLScriptBuilder, ''),
+  ACTIONS(ActionsBuilder, '')
 
   Class<Builder> builder
   String buildFile
