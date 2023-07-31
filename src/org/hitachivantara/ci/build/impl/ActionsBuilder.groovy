@@ -44,13 +44,13 @@ class ActionsBuilder extends MavenBuilder implements IBuilder, Serializable {
 
   private void triggerActionsBuild(JobItem jobItem, String githubToken) {
 
-    String mvnCmd = super.getCommandBuilder('-DskipTests').build()
+    String mvnCmd = super.getCommandBuilder().build()
     String testMvnCmd = super.getTestCommand()
 
     Map scmInfo = jobItem.scmInfo
 
     URL ghApiURL =
-        new URL("https://api.github.com/repos/${scmInfo.organization}/${scmInfo.repository}/actions/workflows/tester.yml/dispatches")
+        new URL("https://api.github.com/repos/${scmInfo.organization}/${scmInfo.repository}/actions/workflows/merge.yml/dispatches")
 
     HttpURLConnection triggerConnection = (HttpURLConnection) ghApiURL.openConnection()
 
@@ -99,6 +99,8 @@ class ActionsBuilder extends MavenBuilder implements IBuilder, Serializable {
         new URL("https://api.github.com/repos/${scmInfo.organization}/${scmInfo.repository}/actions/runs?${query}")
 
     String status = ""
+    int MAX_ATTEMPTS = 5
+    int attempts = 0
 
     steps.sleep(10) //seconds
 
@@ -122,8 +124,17 @@ class ActionsBuilder extends MavenBuilder implements IBuilder, Serializable {
         def id = run.id
         steps.echo "Run #${runNumber} with id ${id}, has status of '${status}'. Its conclusion is/was '${conclusion}'"
 
+        if (status == "") {
+
+          attempts++
+          if (attempts >= MAX_ATTEMPTS) {
+            steps.echo "Max attempts without a reansoble response has been reached. Stopped waiting..."
+            break
+          }
+
+        }
         // if status is already 'completed', let 's not wait for the sleep
-        if (status == "completed") {
+        else if (status == "completed") {
           steps.echo "Action built at https://github.com/${scmInfo.organization}/${scmInfo.repository}/actions/runs/${id}"
           break
         }
