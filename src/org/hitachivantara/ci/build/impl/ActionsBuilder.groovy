@@ -12,6 +12,7 @@ import org.hitachivantara.ci.build.BuildFramework
 import org.hitachivantara.ci.build.BuilderException
 import org.hitachivantara.ci.build.IBuilder
 
+import static org.hitachivantara.ci.config.LibraryProperties.BUILD_RETRIES
 import static org.hitachivantara.ci.config.LibraryProperties.RELEASE_BUILD_NUMBER
 import static org.hitachivantara.ci.config.LibraryProperties.RELEASE_VERSION
 
@@ -27,19 +28,8 @@ class ActionsBuilder extends MavenBuilder implements IBuilder, Serializable {
   }
 
   @Override
-  String getExecutionCommand() {
-    return super.getExecutionCommand()
-  }
-
-  @Override
   Closure getExecution() {
     getBuildClosure(item)
-  }
-
-  @Override
-  void setBuilderData(Map builderData) {
-    this.buildData = builderData['buildData']
-    this.steps = builderData['dsl']
   }
 
   private void triggerActionsBuild(JobItem jobItem, String githubToken) {
@@ -70,6 +60,9 @@ class ActionsBuilder extends MavenBuilder implements IBuilder, Serializable {
                 } 
               }"""
 
+    steps.echo "Dispatched new build at https://api.github.com/repos/${scmInfo.organization}/${scmInfo.repository}/actions"
+    steps.echo "Payload: ${payload}"
+
     OutputStream os = triggerConnection.getOutputStream();
     os.write(payload.getBytes("UTF-8"));
     os.close();
@@ -99,7 +92,7 @@ class ActionsBuilder extends MavenBuilder implements IBuilder, Serializable {
         new URL("https://api.github.com/repos/${scmInfo.organization}/${scmInfo.repository}/actions/runs?${query}")
 
     String status = ""
-    int MAX_ATTEMPTS = 5
+    int MAX_ATTEMPTS = buildData.getInt(BUILD_RETRIES)
     int attempts = 0
 
     steps.sleep(10) //seconds
@@ -128,7 +121,9 @@ class ActionsBuilder extends MavenBuilder implements IBuilder, Serializable {
 
           attempts++
           if (attempts >= MAX_ATTEMPTS) {
-            steps.echo "Max attempts without a reansoble response has been reached. Stopped waiting..."
+            String warningMsg = "Max attempts without a reansoble response has been reached. Stopped waiting..."
+            steps.echo warningMsg
+            buildData.warning(jobItem, warningMsg)
             break
           }
 
@@ -136,6 +131,11 @@ class ActionsBuilder extends MavenBuilder implements IBuilder, Serializable {
         // if status is already 'completed', let 's not wait for the sleep
         else if (status == "completed") {
           steps.echo "Action built at https://github.com/${scmInfo.organization}/${scmInfo.repository}/actions/runs/${id}"
+
+          if ( conclusion != "success" ) {
+            buildData.error(jobItem, "Actions build finished with ${conclusion}")
+          }
+
           break
         }
 
@@ -161,26 +161,6 @@ class ActionsBuilder extends MavenBuilder implements IBuilder, Serializable {
   @Override
   Closure getTestClosure(JobItem jobItem) {
     return {}
-  }
-
-  @Override
-  List<List<JobItem>> expandWorkItem(JobItem jobItem) {
-    expandItem()
-  }
-
-  @Override
-  List<List<JobItem>> expandItem() {
-    return super.expandItem()
-  }
-
-  @Override
-  void markChanges(JobItem jobItem) {
-    super.markChanges(jobItem)
-  }
-
-  @Override
-  void applyScmChanges() {
-    super.applyScmChanges()
   }
 
   @Override
