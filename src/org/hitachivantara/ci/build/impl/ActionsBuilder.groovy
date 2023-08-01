@@ -81,7 +81,7 @@ class ActionsBuilder extends MavenBuilder implements IBuilder, Serializable {
 
     Map scmInfo = jobItem.scmInfo
 
-    String today = (new Date() + 1).format("yyyy-MM-dd")
+    String today = new Date().format("yyyy-MM-dd")
     String actor = steps.utils.getEnvValue("BUILD_GITHUB_USERNAME")
 
     String query = "actor=${actor}&created=${today}&event=workflow_dispatch&branch=${jobItem.scmBranch}&per_page=50"
