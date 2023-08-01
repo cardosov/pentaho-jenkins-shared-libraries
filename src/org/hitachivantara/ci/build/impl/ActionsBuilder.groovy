@@ -60,7 +60,7 @@ class ActionsBuilder extends MavenBuilder implements IBuilder, Serializable {
                 } 
               }"""
 
-    steps.echo "Dispatched new build at https://api.github.com/repos/${scmInfo.organization}/${scmInfo.repository}/actions"
+    steps.echo "Dispatched new build at https://github.com/${scmInfo.organization}/${scmInfo.repository}/actions"
     steps.echo "Payload: ${payload}"
 
     OutputStream os = triggerConnection.getOutputStream();
@@ -81,7 +81,7 @@ class ActionsBuilder extends MavenBuilder implements IBuilder, Serializable {
 
     Map scmInfo = jobItem.scmInfo
 
-    String today = new Date().format("yyyy-MM-dd")
+    String today = (new Date() + 1).format("yyyy-MM-dd")
     String actor = steps.utils.getEnvValue("BUILD_GITHUB_USERNAME")
 
     String query = "actor=${actor}&created=${today}&event=workflow_dispatch&branch=${jobItem.scmBranch}&per_page=50"
@@ -111,19 +111,20 @@ class ActionsBuilder extends MavenBuilder implements IBuilder, Serializable {
         def json = new JsonSlurper().parseText(respJson)
 
         def run = json.workflow_runs[0]
-        status = run.status
-        def conclusion = run.conclusion
-        def runNumber = run.run_number
-        def id = run.id
+        status = run?.status
+        def conclusion = run?.conclusion
+        def runNumber = run?.run_number
+        def id = run?.id
         steps.echo "Run #${runNumber} with id ${id}, has status of '${status}'. Its conclusion is/was '${conclusion}'"
 
-        if (status == "") {
+        if (!status) {
 
           attempts++
           if (attempts >= MAX_ATTEMPTS) {
             String warningMsg = "Max attempts without a reansoble response has been reached. Stopped waiting..."
             steps.echo warningMsg
             buildData.warning(jobItem, warningMsg)
+            steps.job.setBuildUnstable()
             break
           }
 

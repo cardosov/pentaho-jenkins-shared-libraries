@@ -100,7 +100,7 @@ class MavenBuilder extends AbstractBuilder implements IBuilder, Serializable {
     CommandBuilder command = getCommandBuilder('test', buildData.getString(MAVEN_TEST_OPTS))
 
     // list of goals that we want stripped from the final command
-    command -= ['clean', 'validate', 'compile', 'verify', 'package', 'install', 'deploy', '-Dmaven.test.skip', '-Drelease'].join(' ')
+    command -= ['clean', 'validate', 'compile', 'verify', 'package', 'install', 'deploy', '-Dmaven.test.skip', '-Drelease', '-DskipTests'].join(' ')
 
     return command.build()
   }
