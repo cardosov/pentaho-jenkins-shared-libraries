@@ -121,7 +121,7 @@ class ActionsBuilder extends MavenBuilder implements IBuilder, Serializable {
 
           attempts++
           if (attempts >= MAX_ATTEMPTS) {
-            String warningMsg = "Max attempts without a reansoble response has been reached. Stopped waiting..."
+            String warningMsg = "Max attempts without a reasonable response has been reached. Stopped waiting..."
             steps.echo warningMsg
             buildData.warning(jobItem, warningMsg)
             steps.job.setBuildUnstable()
